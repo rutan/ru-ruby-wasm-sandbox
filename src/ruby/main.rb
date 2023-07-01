@@ -1,12 +1,7 @@
 require 'js'
+require 'base64'
 
 JS.eval(<<EOS
-  window.mySleep = function (time) {
-    return new Promise((resolve) => {
-      setTimeout(resolve, time);
-    });
-  };
-
   window.doPrint = function (str) {
     document.body.innerText = str;
   }
@@ -14,14 +9,22 @@ EOS
 )
 
 class RandomWord
+  def initialize(words)
+    @words = words
+  end
+
   def say
-    %w[wow hi! yahoo].sample
+    @words.sample
   end
 end
 
-word = RandomWord.new.say
+bin64 = JS.global[:rubyBridge][:utils].fetchBinaryBase64('words.dat').await
+bin = Base64.decode64(bin64.to_s)
+words = Marshal.load(bin)
+
+word = RandomWord.new(words).say
 
 loop do
   JS.global.doPrint("#{word} / #{Time.now}")
-  JS.global.mySleep(1000).await
+  JS.global[:rubyBridge][:utils].sleep(1).await
 end
